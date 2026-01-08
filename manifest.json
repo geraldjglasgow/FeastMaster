@@ -1,0 +1,9 @@
+{
+    "name": "FeastMaster",
+    "version_number": "3.0.0",
+    "website_url": "https://github.com/geraldjglasgow/FeastMaster",
+    "description": "Customize food and mead stats including health, stamina, eitr, duration, and regen for vanilla and modded items",
+    "dependencies": [
+        "ValheimModding-Jotunn-2.10.1"
+    ]
+}

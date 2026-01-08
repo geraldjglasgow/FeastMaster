@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Target Name="ILRepacker" AfterTargets="Build">
+        <PropertyGroup>
+            <ILRepackExe>$(NuGetPackageRoot)ilrepack\2.0.34\tools\ILRepack.exe</ILRepackExe>
+        </PropertyGroup>
+        <Exec Command="&quot;$(ILRepackExe)&quot; /parallel /internalize /lib:&quot;$(ProjectDir)libs&quot; /out:&quot;$(TargetPath)&quot; &quot;$(TargetPath)&quot; &quot;$(ProjectDir)libs\ServerSync.dll&quot;" />
+    </Target>
+</Project>

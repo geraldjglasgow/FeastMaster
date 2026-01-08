@@ -1,6 +1,6 @@
-﻿namespace ValheimFoodConfig
+namespace FeastMaster
 {
-    public class Constants
+    public static class Constants
     {
         public const string Health = "Health";
         public const string Stamina = "Stamina";
@@ -10,9 +10,19 @@
 
         public static readonly string[] MeadNames =
         {
+            "MeadHealthMinor",
             "MeadHealthMedium",
+            "MeadHealthMajor",
+            "MeadStaminaMinor",
             "MeadStaminaMedium",
-            "MeadTasty"
+            "MeadStaminaLingering",
+            "MeadEitrMinor",
+            "MeadEitrLingering",
+            "MeadPoisonResist",
+            "MeadFrostResist",
+            "MeadFireResist",
+            "MeadTasty",
+            "BarleyWine"
         };
     }
 }
