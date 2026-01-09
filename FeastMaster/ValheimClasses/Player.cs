@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using HarmonyLib;
 
 namespace FeastMaster
@@ -66,35 +69,64 @@ namespace FeastMaster
     }
 
     /// <summary>
-    /// Patches GetTotalFoodValue to optionally disable food degradation.
+    /// Transpiler to disable food degradation by replacing field accesses in GetTotalFoodValue.
+    /// Replaces loads of degraded health/stamina/eitr with calls to helper methods that check config at runtime.
     /// </summary>
     [HarmonyPatch(typeof(Player), nameof(Player.GetTotalFoodValue))]
     public static class PlayerFoodDegradationPatch
     {
-        private static readonly AccessTools.FieldRef<Player, List<Player.Food>> FoodsField =
-            AccessTools.FieldRefAccess<Player, List<Player.Food>>("m_foods");
+        private static readonly FieldInfo field_Food_m_health = AccessTools.Field(typeof(Player.Food), nameof(Player.Food.m_health));
+        private static readonly FieldInfo field_Food_m_stamina = AccessTools.Field(typeof(Player.Food), nameof(Player.Food.m_stamina));
+        private static readonly FieldInfo field_Food_m_eitr = AccessTools.Field(typeof(Player.Food), nameof(Player.Food.m_eitr));
 
-        [HarmonyPrefix]
-        public static bool Prefix(Player __instance, out float hp, out float stamina, out float eitr)
+        // Helper methods that check config at runtime
+        public static float GetFoodHealth(Player.Food food)
         {
-            hp = 0f;
-            stamina = 0f;
-            eitr = 0f;
+            if (FeastMasterData.DisableFoodDegradation.Value)
+                return food.m_item.m_shared.m_food;
+            return food.m_health;
+        }
 
-            if (!FeastMasterData.DisableFoodDegradation.Value)
-                return true;
+        public static float GetFoodStamina(Player.Food food)
+        {
+            if (FeastMasterData.DisableFoodDegradation.Value)
+                return food.m_item.m_shared.m_foodStamina;
+            return food.m_stamina;
+        }
 
-            // Use full food values without degradation
-            var foods = FoodsField(__instance);
-            foreach (var food in foods)
+        public static float GetFoodEitr(Player.Food food)
+        {
+            if (FeastMasterData.DisableFoodDegradation.Value)
+                return food.m_item.m_shared.m_foodEitr;
+            return food.m_eitr;
+        }
+
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            List<CodeInstruction> il = instructions.ToList();
+
+            for (int i = 0; i < il.Count; ++i)
             {
-                var shared = food.m_item.m_shared;
-                hp += shared.m_food;
-                stamina += shared.m_foodStamina;
-                eitr += shared.m_foodEitr;
+                bool loads_health = il[i].LoadsField(field_Food_m_health);
+                bool loads_stamina = il[i].LoadsField(field_Food_m_stamina);
+                bool loads_eitr = il[i].LoadsField(field_Food_m_eitr);
+
+                if (loads_health || loads_stamina || loads_eitr)
+                {
+                    // Replace field load with call to helper method
+                    // The stack already has the Food object on it from the previous instruction
+                    MethodInfo helper = loads_health ? AccessTools.Method(typeof(PlayerFoodDegradationPatch), nameof(GetFoodHealth)) :
+                                        loads_stamina ? AccessTools.Method(typeof(PlayerFoodDegradationPatch), nameof(GetFoodStamina)) :
+                                        AccessTools.Method(typeof(PlayerFoodDegradationPatch), nameof(GetFoodEitr));
+
+                    il[i].opcode = OpCodes.Call;
+                    il[i].operand = helper;
+                }
             }
 
-            return false;
+            return il.AsEnumerable();
         }
     }
+
 }

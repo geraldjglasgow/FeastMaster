@@ -1,6 +1,14 @@
 # FeastMaster
 
-Customize food and mead stats including health, stamina, eitr, duration, and regen for vanilla and modded items.
+A comprehensive food and mead configuration mod for Valheim with ServerSync multiplayer support.
+
+### Features
+- **Global Stat Multipliers** - Apply multipliers to health, stamina, eitr, duration, and health regen for all foods
+- **Per-Item Configuration** - Fine-tune individual food and mead stats
+- **Disable Food Degradation** - Keep food buffs at full strength instead of decreasing over time
+- **Mead Customization** - Configure duration and over-time effects for meads
+- **Live Config Reloading** - Changes apply immediately without restarting the game
+- **ServerSync** - Server enforces config settings for all connected players
 
 Please let me know if you find any additional bugs, issues or incompatibilities.
 
@@ -12,6 +20,9 @@ Please let me know if you find any additional bugs, issues or incompatibilities.
 For manual install, drag FeastMaster.dll into the BepInEx/plugins folder.
 
 ### Changelog
+**3.2.0**
+ * Fixed disable food degradation feature
+
 **3.1.1**
  * Fixed icon
 

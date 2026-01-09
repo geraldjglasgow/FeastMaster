@@ -15,7 +15,7 @@ namespace FeastMaster
     {
         private const string PluginGuid = "com.FeastMaster";
         private const string PluginName = "FeastMaster";
-        private const string PluginVersion = "3.1.1";
+        private const string PluginVersion = "3.2.0";
 
         public static ManualLogSource Log { get; private set; }
 

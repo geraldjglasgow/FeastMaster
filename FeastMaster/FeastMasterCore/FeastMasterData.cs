@@ -9,7 +9,7 @@ namespace FeastMaster
 {
     public static class FeastMasterData
     {
-        private const string ModifiersGroup = "0_Modifiers";
+        private const string ModifiersGroup = "0. Global Settings";
 
         public static Dictionary<string, Dictionary<string, ConfigEntry<float>>> FoodConfigs { get; }
             = new Dictionary<string, Dictionary<string, ConfigEntry<float>>>();
