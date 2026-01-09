@@ -53,6 +53,9 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- BepInEx Core -->
     <Reference Include="0Harmony">
       <HintPath>libs\0Harmony.dll</HintPath>

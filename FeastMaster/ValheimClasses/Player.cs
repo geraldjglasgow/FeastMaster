@@ -1,84 +1,90 @@
 using System.Collections.Generic;
 using HarmonyLib;
-using Jotunn.Managers;
-using UnityEngine.SceneManagement;
 
 namespace FeastMaster
 {
-    [HarmonyPatch(typeof(Player), nameof(Player.Awake))]
-    [HarmonyPriority(Priority.First)]
-    public static class PlayerAwakePatch
+    /// <summary>
+    /// Patches Player.EatFood to apply configured food values at consumption time.
+    /// This ensures config changes take effect immediately without reloading.
+    /// </summary>
+    [HarmonyPatch(typeof(Player), nameof(Player.EatFood))]
+    public static class PlayerEatFoodPatch
     {
-        private static void Postfix()
+        [HarmonyPrefix]
+        public static void Prefix(ItemDrop.ItemData item)
         {
-            if (SceneManager.GetActiveScene().name != "main")
+            if (item == null)
                 return;
 
-            ApplyFoodConfigurations();
-            ApplyMeadConfigurations();
-        }
+            var shared = item.m_shared;
+            var foodName = shared.m_name;
 
-        private static void ApplyFoodConfigurations()
-        {
-            foreach (var kvp in FeastMasterData.FoodConfigs)
+            // Try to find config by item name (prefab name)
+            if (!FeastMasterData.FoodConfigs.TryGetValue(foodName, out var configs))
             {
-                var item = PrefabManager.Cache.GetPrefab<ItemDrop>(kvp.Key);
-                if (item == null)
-                    continue;
-
-                var shared = item.m_itemData.m_shared;
-                var configs = kvp.Value;
-
-                shared.m_food = configs[Constants.Health].Value * FeastMasterData.HealthModifier.Value;
-                shared.m_foodStamina = configs[Constants.Stamina].Value * FeastMasterData.StaminaModifier.Value;
-                shared.m_foodBurnTime = configs[Constants.Duration].Value * FeastMasterData.DurationModifier.Value;
-                shared.m_foodRegen = configs[Constants.HealthRegen].Value * FeastMasterData.HealthRegenModifier.Value;
-                shared.m_foodEitr = configs[Constants.Eitr].Value * FeastMasterData.EitrModifier.Value;
+                // Try without $ prefix if present
+                foodName = item.m_dropPrefab?.name ?? foodName;
+                if (!FeastMasterData.FoodConfigs.TryGetValue(foodName, out configs))
+                    return;
             }
+
+            // Apply configured values with global modifiers
+            shared.m_food = configs[Constants.Health].Value * FeastMasterData.HealthModifier.Value;
+            shared.m_foodStamina = configs[Constants.Stamina].Value * FeastMasterData.StaminaModifier.Value;
+            shared.m_foodBurnTime = configs[Constants.Duration].Value * FeastMasterData.DurationModifier.Value;
+            shared.m_foodRegen = configs[Constants.HealthRegen].Value * FeastMasterData.HealthRegenModifier.Value;
+            shared.m_foodEitr = configs[Constants.Eitr].Value * FeastMasterData.EitrModifier.Value;
         }
+    }
 
-        private static void ApplyMeadConfigurations()
+    /// <summary>
+    /// Patches status effect application to apply mead configs at consumption time.
+    /// </summary>
+    [HarmonyPatch(typeof(SEMan), nameof(SEMan.AddStatusEffect), typeof(StatusEffect), typeof(bool), typeof(int), typeof(float))]
+    public static class SEManAddStatusEffectPatch
+    {
+        [HarmonyPrefix]
+        public static void Prefix(StatusEffect statusEffect)
         {
-            foreach (var meadName in Constants.MeadNames)
-            {
-                if (!FeastMasterData.MeadConfigs.TryGetValue(meadName, out var meadConfig))
-                    continue;
+            if (statusEffect == null || !(statusEffect is SE_Stats stats))
+                return;
 
-                var itemDrop = PrefabManager.Cache.GetPrefab<ItemDrop>(meadName);
-                if (itemDrop?.m_itemData.m_shared.m_consumeStatusEffect is SE_Stats stats)
+            // Find matching mead config by status effect name
+            foreach (var kvp in FeastMasterData.MeadConfigs)
+            {
+                if (statusEffect.name.Contains(kvp.Key) || statusEffect.m_name.Contains(kvp.Key))
                 {
-                    stats.m_ttl = meadConfig.Duration.Value;
-                    stats.m_healthOverTime = meadConfig.HealthOverTime.Value;
-                    stats.m_staminaOverTime = meadConfig.StaminaOverTime.Value;
-                    stats.m_eitrOverTime = meadConfig.EitrOverTime.Value;
+                    var config = kvp.Value;
+                    stats.m_ttl = config.Duration.Value;
+                    stats.m_healthOverTime = config.HealthOverTime.Value;
+                    stats.m_staminaOverTime = config.StaminaOverTime.Value;
+                    stats.m_eitrOverTime = config.EitrOverTime.Value;
+                    return;
                 }
             }
         }
     }
 
+    /// <summary>
+    /// Patches GetTotalFoodValue to optionally disable food degradation.
+    /// </summary>
     [HarmonyPatch(typeof(Player), nameof(Player.GetTotalFoodValue))]
     public static class PlayerFoodDegradationPatch
     {
-        // Use AccessTools to get private field at runtime
         private static readonly AccessTools.FieldRef<Player, List<Player.Food>> FoodsField =
             AccessTools.FieldRefAccess<Player, List<Player.Food>>("m_foods");
 
         [HarmonyPrefix]
         public static bool Prefix(Player __instance, out float hp, out float stamina, out float eitr)
         {
-            if (!FeastMasterData.DisableFoodDegradation.Value)
-            {
-                hp = 0f;
-                stamina = 0f;
-                eitr = 0f;
-                return true; // Run original method
-            }
-
-            // Calculate totals using original (non-degraded) values
             hp = 0f;
             stamina = 0f;
             eitr = 0f;
 
+            if (!FeastMasterData.DisableFoodDegradation.Value)
+                return true;
+
+            // Use full food values without degradation
             var foods = FoodsField(__instance);
             foreach (var food in foods)
             {
@@ -88,7 +94,7 @@ namespace FeastMaster
                 eitr += shared.m_foodEitr;
             }
 
-            return false; // Skip original method
+            return false;
         }
     }
 }

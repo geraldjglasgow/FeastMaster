@@ -1,3 +1,4 @@
+using System.IO;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
@@ -14,7 +15,7 @@ namespace FeastMaster
     {
         private const string PluginGuid = "com.FeastMaster";
         private const string PluginName = "FeastMaster";
-        private const string PluginVersion = "2.3.1";
+        private const string PluginVersion = "3.1.1";
 
         public static ManualLogSource Log { get; private set; }
 
@@ -25,15 +26,44 @@ namespace FeastMaster
             MinimumRequiredVersion = PluginVersion
         };
 
+        private FileSystemWatcher _configWatcher;
+
         private void Awake()
         {
             Log = Logger;
 
             FeastMasterData.Initialize(Config, _configSync);
-            // Use OnPrefabsRegistered to ensure all mod-added items are available
             PrefabManager.OnPrefabsRegistered += FeastMasterData.LoadConfigurations;
 
             new Harmony(PluginGuid).PatchAll(Assembly.GetExecutingAssembly());
+
+            SetupConfigWatcher();
+        }
+
+        private void SetupConfigWatcher()
+        {
+            var configPath = Config.ConfigFilePath;
+            var configDir = Path.GetDirectoryName(configPath);
+            var configFile = Path.GetFileName(configPath);
+
+            _configWatcher = new FileSystemWatcher(configDir, configFile)
+            {
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+                EnableRaisingEvents = true
+            };
+
+            _configWatcher.Changed += OnConfigFileChanged;
+        }
+
+        private void OnConfigFileChanged(object sender, FileSystemEventArgs e)
+        {
+            Log.LogInfo("Config file changed, reloading...");
+            Config.Reload();
+        }
+
+        private void OnDestroy()
+        {
+            _configWatcher?.Dispose();
         }
     }
 }

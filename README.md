@@ -12,6 +12,13 @@ Please let me know if you find any additional bugs, issues or incompatibilities.
 For manual install, drag FeastMaster.dll into the BepInEx/plugins folder.
 
 ### Changelog
+**3.1.1**
+ * Fixed icon
+
+**3.1.0**
+ * Config changes now apply immediately without restart (auto-reload on file change)
+ * Food and mead values applied at consumption time for better multiplayer compatibility
+
 **3.0.0**
  * Renamed mod from ValheimFoodConfig to FeastMaster
 
