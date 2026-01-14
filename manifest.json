@@ -1,0 +1,9 @@
+{
+    "name": "FeastMaster",
+    "version_number": "3.2.0",
+    "website_url": "https://github.com/geraldjglasgow/FeastMaster",
+    "description": "Apply global stat multipliers or fine-tune individual foods and meads. Disable food degradation, customize health, stamina, eitr, duration, and regen. Live config reloading included.",
+    "dependencies": [
+        "ValheimModding-Jotunn-2.10.1"
+    ]
+}
